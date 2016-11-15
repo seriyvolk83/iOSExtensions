@@ -1,0 +1,112 @@
+{\rtf1\ansi\ansicpg1251\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red170\green13\blue145;\red92\green38\blue153;\red46\green13\blue110;
+\red0\green116\blue0;\red28\green0\blue207;\red196\green26\blue22;\red2\green61\blue16;\red63\green110\blue116;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww22200\viewh14480\viewkind0
+\deftab642
+\pard\tx642\pardeftab642\pardirnatural\partightenfactor0
+
+\f0\fs26 \cf0 \CocoaLigature0     \cf2 func\cf0  createPDF(html: \cf3 String\cf0 , callback: \cf2 @escaping\cf0  (\cf3 String\cf0 )->()) \{\
+        \cf3 DispatchQueue\cf0 .\cf3 main\cf0 .\cf4 async\cf0  \{\
+            \cf2 let\cf0  fmt = \cf3 UIMarkupTextPrintFormatter\cf0 (markupText: html)\
+            \
+            \cf5 // 2. Assign print formatter to UIPrintPageRenderer\
+\cf0             \
+            \cf2 let\cf0  render = \cf3 UIPrintPageRenderer\cf0 ()\
+            render.\cf4 addPrintFormatter\cf0 (fmt, startingAtPageAt: \cf6 0\cf0 )\
+            \
+            \cf5 // 3. Assign paperRect and printableRect\
+\cf0             \
+            \cf2 let\cf0  page = \cf3 CGRect\cf0 (x: \cf6 0\cf0 , y: \cf6 0\cf0 , width: \cf6 595.2\cf0 , height: \cf6 841.8\cf0 ) \cf5 // A4, 72 dpi\
+\cf0             \cf2 let\cf0  printable = page.\cf4 insetBy\cf0 (dx: \cf6 0\cf0 , dy: \cf6 0\cf0 )\
+            \
+            render.\cf4 setValue\cf0 (\cf3 NSValue\cf0 (cgRect: page), forKey: \cf7 "paperRect"\cf0 )\
+            render.\cf4 setValue\cf0 (\cf3 NSValue\cf0 (cgRect: printable), forKey: \cf7 "printableRect"\cf0 )\
+            \
+            \cf5 // 4. Create PDF context and draw\
+\cf0             \
+            \cf2 let\cf0  pdfData = \cf3 NSMutableData\cf0 ()\
+            \cf4 UIGraphicsBeginPDFContextToData\cf0 (pdfData, \cf3 CGRect\cf0 .\cf3 zero\cf0 , \cf2 nil\cf0 )\
+            \
+            \cf2 for\cf0  i \cf2 in\cf0  \cf6 1\cf0 ...render.\cf3 numberOfPages\cf0  \{\
+                \
+                \cf4 UIGraphicsBeginPDFPage\cf0 ();\
+                \cf2 let\cf0  bounds = \cf4 UIGraphicsGetPDFContextBounds\cf0 ()\
+                render.\cf4 drawPage\cf0 (at: i - \cf6 1\cf0 , in: bounds)\
+            \}\
+            \
+            \cf4 UIGraphicsEndPDFContext\cf0 ();\
+            \
+            \cf5 // 5. Save PDF file\
+\cf0             \
+            \cf2 let\cf0  documentsPath = \cf4 NSSearchPathForDirectoriesInDomains\cf0 (.\cf4 documentDirectory\cf0 , .\cf3 userDomainMask\cf0 , \cf2 true\cf0 )[\cf6 0\cf0 ]\
+            \
+            \cf2 let\cf0  pdfFilepath = \cf7 "\cf0 \\\cf7 (\cf0 documentsPath\cf7 )/file.pdf"\cf0 \
+            pdfData.\cf4 write\cf0 (toFile: pdfFilepath, atomically: \cf2 true\cf0 )\
+            \cf3 DispatchQueue\cf0 .\cf3 main\cf0 .\cf4 async\cf0  \{\
+                callback(pdfFilepath)\
+            \}\
+        \}\
+    \}\
+\
+Swift 2\
+    \cf5 /// Create PDF from view\
+\cf0     \cf5 ///\
+\cf0     \cf5 /// - \cf8 parameter\cf5  fileName: the filename\
+\cf0     \cf5 ///\
+\cf0     \cf5 /// - \cf8 returns\cf5 : the filepath\
+\cf0     \cf2 func\cf0  createPdfFromView(saveToDocumentsWithFileName fileName: \cf3 String\cf0 ) -> \cf3 String\cf0 ? \{\
+        \cf2 self\cf0 .\cf3 view\cf0 .\cf4 layoutIfNeeded\cf0 ()\
+        \cf9 tableHeight\cf0 .\cf3 constant\cf0  = \cf9 tableView\cf0 .\cf3 contentSize\cf0 .\cf3 height\cf0 \
+        \cf2 self\cf0 .\cf9 topLevelView\cf0 .\cf4 setNeedsLayout\cf0 ()\
+        \cf2 self\cf0 .\cf3 view\cf0 .\cf4 layoutIfNeeded\cf0 ()\
+        \cf2 let\cf0  view = \cf2 self\cf0 .\cf9 topLevelView\cf0 \
+        \cf2 let\cf0  pdfData = \cf3 NSMutableData\cf0 ()\
+        \cf2 self\cf0 .\cf3 view\cf0 .\cf3 contentScaleFactor\cf0  = \cf6 2\cf0 \
+        \cf4 UIGraphicsBeginPDFContextToData\cf0 (pdfData, view.\cf3 bounds\cf0 , \cf2 nil\cf0 )\
+        \cf4 UIGraphicsBeginPDFPage\cf0 ()\
+        \
+        \cf2 guard\cf0  \cf2 let\cf0  pdfContext = \cf4 UIGraphicsGetCurrentContext\cf0 () \cf2 else\cf0  \{ \cf2 return\cf0  \cf2 nil\cf0  \}\
+        \
+        view.\cf3 layer\cf0 .\cf4 renderInContext\cf0 (pdfContext)\
+        \cf4 UIGraphicsEndPDFContext\cf0 ()\
+        \
+        \cf2 if\cf0  \cf2 let\cf0  documentDirectories = \cf4 NSSearchPathForDirectoriesInDomains\cf0 (.\cf4 DocumentDirectory\cf0 , .\cf3 UserDomainMask\cf0 , \cf2 true\cf0 ).\cf3 first\cf0  \{\
+            \cf2 let\cf0  documentsFileName = documentDirectories + \cf7 "/"\cf0  + fileName + \cf7 ".pdf"\cf0 \
+            \cf4 debugPrint\cf0 (documentsFileName)\
+            pdfData.\cf4 writeToFile\cf0 (documentsFileName, atomically: \cf2 true\cf0 )\
+            \cf2 return\cf0  documentsFileName\
+        \}\
+        \cf2 return\cf0  \cf2 nil\cf0 \
+    \}\
+\
+Swift 3\
+    \cf5 /// Create PDF from view\
+\cf0     \cf5 ///\
+\cf0     \cf5 /// - \cf8 parameter\cf5  view:     the view\
+\cf0     \cf5 /// - \cf8 parameter\cf5  fileName: the filename\
+\cf0     \cf5 ///\
+\cf0     \cf5 /// - \cf8 returns\cf5 : the filepath\
+\cf0     \cf2 func\cf0  createPdfFromView(fromView view: \cf3 UIView\cf0 , fileName: \cf3 String\cf0 ) -> \cf3 String\cf0 ? \{\
+        view.\cf4 layoutIfNeeded\cf0 ()\
+        \
+        \cf2 let\cf0  pdfData = \cf3 NSMutableData\cf0 ()\
+        \cf2 self\cf0 .\cf3 view\cf0 .\cf3 contentScaleFactor\cf0  = \cf6 2\cf0 \
+        \cf4 UIGraphicsBeginPDFContextToData\cf0 (pdfData, view.\cf3 bounds\cf0 , \cf2 nil\cf0 )\
+        \cf4 UIGraphicsBeginPDFPage\cf0 ()\
+        \
+        \cf2 guard\cf0  \cf2 let\cf0  pdfContext = \cf4 UIGraphicsGetCurrentContext\cf0 () \cf2 else\cf0  \{ \cf2 return\cf0  \cf2 nil\cf0  \}\
+        \
+        view.\cf3 layer\cf0 .\cf4 render\cf0 (in: pdfContext)\
+        \cf4 UIGraphicsEndPDFContext\cf0 ()\
+        \
+        \cf2 if\cf0  \cf2 let\cf0  documentDirectories = \cf4 NSSearchPathForDirectoriesInDomains\cf0 (.\cf4 documentDirectory\cf0 , .\cf3 userDomainMask\cf0 , \cf2 true\cf0 ).\cf3 first\cf0  \{\
+            \cf2 let\cf0  documentsFileName = documentDirectories \cf4 +\cf0  \cf7 "/"\cf0  \cf4 +\cf0  fileName \cf4 +\cf0  \cf7 ".pdf"\cf0 \
+            \cf4 debugPrint\cf0 (documentsFileName)\
+            pdfData.\cf4 write\cf0 (toFile: documentsFileName, atomically: \cf2 true\cf0 )\
+            \cf2 return\cf0  documentsFileName\
+        \}\
+        \cf2 return\cf0  \cf2 nil\cf0 \
+    \}\
+    }
